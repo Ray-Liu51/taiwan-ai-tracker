@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台股AI追蹤</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#080c14;--bg2:#0d1220;--bg3:#121929;--bg4:#171f30;
+  --border:#1c2840;--border2:#243250;
+  --accent:#38bdf8;--green:#34d399;--red:#f87171;--warn:#fbbf24;
+  --text:#e2e8f0;--text2:#7a90aa;--text3:#3d5470;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
+
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);background:rgba(8,12,20,.97);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.topbar-title{font-size:17px;font-weight:900;letter-spacing:.04em}
+.topbar-title span{color:var(--accent)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.live-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);font-family:monospace}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:calc(100vh - 53px)}
+
+/* Sidebar nav (desktop) */
+.sidebar{width:200px;flex-shrink:0;border-right:1px solid var(--border);background:var(--bg2);padding:16px 0;display:none;flex-direction:column;gap:2px;position:sticky;top:53px;height:calc(100vh - 53px);overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 16px;font-size:13px;font-weight:600;color:var(--text2);cursor:pointer;border-left:3px solid transparent;transition:all .15s}
+.nav-item:hover{background:rgba(56,189,248,.04);color:var(--text)}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(56,189,248,.06)}
+.nav-item .nav-icon{font-size:16px;width:20px;text-align:center}
+.nav-divider{height:1px;background:var(--border);margin:8px 12px}
+
+/* Main content */
+.main{flex:1;overflow-y:auto;min-width:0}
+
+/* Bottom tabs (mobile) */
+.bottom-tabs{display:flex;border-top:1px solid var(--border);background:var(--bg2);position:sticky;bottom:0;z-index:100}
+.btab{flex:1;padding:10px 4px 12px;text-align:center;font-size:11px;font-weight:700;color:var(--text2);cursor:pointer;transition:all .15s;border-top:2px solid transparent}
+.btab.active{color:var(--accent);border-top-color:var(--accent)}
+.btab-icon{font-size:18px;display:block;margin-bottom:2px}
+
+/* ── PAGES ── */
+.page{display:none;padding:20px}
+.page.active{display:block}
+
+/* ── RESPONSIVE GRID ── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+
+/* ── CARDS ── */
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}
+.sec-title{font-size:11px;font-weight:700;color:var(--text2);margin:20px 0 10px;letter-spacing:.07em;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.sec-title:first-child{margin-top:0}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* ── CHART LINKS ── */
+.chart-link{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:14px 8px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;text-decoration:none;cursor:pointer;transition:all .15s}
+.chart-link:hover{border-color:var(--accent);background:rgba(56,189,248,.04)}
+.chart-link:active{transform:scale(.97)}
+.chart-link .cl-icon{font-size:22px}
+.chart-link .cl-name{font-size:11px;font-weight:700;color:var(--text);text-align:center;line-height:1.3}
+.chart-link .cl-sym{font-size:10px;font-family:monospace;color:var(--accent);background:rgba(56,189,248,.1);padding:2px 7px;border-radius:4px}
+.chart-link .cl-arr{font-size:10px;color:var(--text3)}
+
+/* ── ETF CARDS ── */
+.etf-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;transition:border-color .2s}
+.etf-card:hover{border-color:var(--border2)}
+.etf-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:8px}
+.etf-code{font-family:monospace;font-size:10px;color:var(--accent);background:rgba(56,189,248,.1);padding:2px 7px;border-radius:4px;margin-bottom:4px;display:inline-block}
+.etf-name{font-size:14px;font-weight:700;color:var(--text)}
+.etf-cat{font-size:10px;color:var(--text3);margin-top:3px}
+.etf-price-wrap{text-align:right;flex-shrink:0}
+.etf-price{font-family:monospace;font-size:20px;font-weight:700;color:var(--text3);line-height:1}
+.etf-price.up{color:var(--green)}
+.etf-price.down{color:var(--red)}
+.etf-chg{font-family:monospace;font-size:12px;color:var(--text3);margin-top:4px}
+.etf-chg.up{color:var(--green)}
+.etf-chg.down{color:var(--red)}
+.etf-btn-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.etf-query-btn{padding:6px 12px;border-radius:7px;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.25);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.etf-query-btn:hover{background:rgba(56,189,248,.18)}
+.etf-query-btn:disabled{opacity:.45;cursor:not-allowed}
+.etf-tv-btn{padding:6px 12px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid var(--border);color:var(--text2);font-size:12px;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
+.etf-tv-btn:hover{border-color:var(--border2);color:var(--text)}
+.etf-status{font-size:10px;color:var(--green);font-family:monospace;margin-left:auto}
+.etf-result{background:#0a1628;border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:10px;font-size:13px;line-height:1.7;display:none}
+.etf-result.show{display:block}
+
+/* ── RESULT SHARED ── */
+.res-header{font-size:10px;color:var(--accent);font-weight:700;margin-bottom:8px;font-family:monospace;letter-spacing:.05em}
+.res-signal{display:inline-block;font-family:monospace;font-size:14px;font-weight:700;padding:3px 10px;border-radius:6px;margin:3px 4px 3px 0}
+.up-bg{background:rgba(52,211,153,.15);color:var(--green)}
+.down-bg{background:rgba(248,113,113,.15);color:var(--red)}
+.neutral-bg{background:rgba(251,191,36,.15);color:var(--warn)}
+.res-warn{color:var(--red);font-weight:700}
+.res-ok{color:var(--green);font-weight:700}
+.res-body-text{color:#cbd5e1;font-size:13px;line-height:1.7;margin-bottom:8px}
+.res-action{color:var(--text2);font-size:12px;border-top:1px solid var(--border);padding-top:8px;margin-top:4px}
+
+/* ── CHECKLIST ── */
+.prog-wrap{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
+.prog-row{display:flex;justify-content:space-between;margin-bottom:8px}
+.prog-label{font-size:12px;color:var(--text2)}
+.prog-num{font-family:monospace;font-size:16px;font-weight:700;color:var(--accent)}
+.prog-bg{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:3px;transition:width .3s}
+.cl-section{margin-bottom:16px}
+.cl-head{display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--bg4);border:1px solid var(--border);border-bottom:none;border-radius:10px 10px 0 0}
+.cl-head-title{font-size:13px;font-weight:700}
+.cl-badge{margin-left:auto;font-size:10px;font-family:monospace;padding:2px 9px;border-radius:10px}
+.cl-body{background:var(--bg2);border:1px solid var(--border);border-radius:0 0 10px 10px}
+.cl-item{border-bottom:1px solid var(--border)}
+.cl-item:last-child{border-bottom:none}
+.cl-row{display:flex;align-items:flex-start;gap:10px;padding:11px 14px 7px;cursor:pointer}
+.cl-row:active{background:rgba(255,255,255,.02)}
+.cl-box{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--text3);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;background:transparent;transition:all .15s}
+.cl-item.done .cl-box{background:var(--green);border-color:var(--green)}
+.cl-check{font-size:12px;color:#080c14;font-weight:900;display:none}
+.cl-item.done .cl-check{display:block}
+.cl-main{font-size:13px;font-weight:600;color:var(--text);line-height:1.4}
+.cl-item.done .cl-main{color:var(--text3);text-decoration:line-through}
+.cl-hint{font-size:11px;color:var(--text3);margin-top:2px}
+.cl-query-row{padding:0 14px 10px 44px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.query-btn{padding:6px 12px;border-radius:7px;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.25);color:var(--accent);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.query-btn:hover{background:rgba(56,189,248,.18)}
+.query-btn:disabled{opacity:.45;cursor:not-allowed}
+.cl-result{margin:0 14px 10px 44px;background:#0a1628;border:1px solid var(--border);border-radius:8px;padding:12px;font-size:13px;line-height:1.7;display:none}
+.cl-result.show{display:block}
+
+/* ── VERDICT / NOTES ── */
+.verdict-row{display:flex;gap:8px}
+.v-btn{flex:1;padding:10px 4px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:transparent;color:var(--text2);font-family:inherit;transition:all .2s}
+.v-btn:hover{border-color:var(--border2)}
+.v-btn.bull.on{border-color:var(--green);background:rgba(52,211,153,.12);color:var(--green)}
+.v-btn.neut.on{border-color:var(--warn);background:rgba(251,191,36,.12);color:var(--warn)}
+.v-btn.bear.on{border-color:var(--red);background:rgba(248,113,113,.12);color:var(--red)}
+textarea{width:100%;min-height:80px;background:transparent;border:none;color:var(--text);font-size:13px;font-family:inherit;resize:none;outline:none;line-height:1.6}
+textarea::placeholder{color:var(--text3)}
+.reset-btn{width:100%;padding:12px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--text3);font-size:13px;cursor:pointer;font-family:inherit;margin-bottom:10px;transition:all .15s}
+.reset-btn:hover{border-color:var(--border2);color:var(--text2)}
+.disclaimer{font-size:10px;color:var(--text3);text-align:center;line-height:1.8;padding-bottom:24px}
+
+/* ── DESKTOP RESPONSIVE ── */
+@media(min-width:768px){
+  .sidebar{display:flex}
+  .bottom-tabs{display:none}
+  .page{padding:24px 28px}
+  .grid-2{grid-template-columns:repeat(3,1fr)}
+  .etf-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .etf-grid .etf-card{margin-bottom:0}
+  .cl-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+}
+@media(min-width:1200px){
+  .sidebar{width:220px}
+  .grid-2{grid-template-columns:repeat(4,1fr)}
+  .etf-grid{grid-template-columns:repeat(3,1fr)}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-title">台股<span>AI</span>追蹤系統</div>
+  <div class="topbar-right">
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      <span id="dateStr">--</span>
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR (desktop) -->
+  <div class="sidebar" id="sidebar">
+    <div class="nav-item active" onclick="switchPage(0)" data-page="0">
+      <span class="nav-icon">📊</span>美股指標
+    </div>
+    <div class="nav-item" onclick="switchPage(1)" data-page="1">
+      <span class="nav-icon">🇹🇼</span>台股個股
+    </div>
+    <div class="nav-item" onclick="switchPage(2)" data-page="2">
+      <span class="nav-icon">💼</span>我的ETF
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-item" onclick="switchPage(3)" data-page="3">
+      <span class="nav-icon">✅</span>追蹤清單
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="mainContent">
+
+    <!-- PAGE 0: 美股指標 -->
+    <div class="page active" id="page0">
+      <div class="sec-title">🇺🇸 美股關鍵指標</div>
+      <div class="grid-2">
+        <a class="chart-link" href="https://www.tradingview.com/chart/?symbol=NASDAQ:SOX" target="_blank">
+          <span class="cl-icon">📉</span><span class="cl-name">費城半導體</span><span class="cl-sym">SOX</span><span class="cl-arr">↗ TradingView</span>
+        </a>
+        <a class="chart-link" href="https://www.tradingview.com/chart/?symbol=NASDAQ:NVDA" target="_blank">
+          <span class="cl-icon">🤖</span><span class="cl-name">輝達</span><span class="cl-sym">NVDA</span><span class="cl-arr">↗ TradingView</span>
+        </a>
+        <a class="chart-link" href="https://www.tradingview.com/chart/?symbol=NYSE:TSM" target="_blank">
+          <span class="cl-icon">🏭</span><span class="cl-name">台積電 ADR</span><span class="cl-sym">TSM</span><span class="cl-arr">↗ TradingView</span>
+        </a>
+        <a class="chart-link" href="https://www.tradingview.com/chart/?symbol=NASDAQ:AMD" target="_blank">
+          <span class="cl-icon">💻</span><span class="cl-name">AMD</span><span class="cl-sym">AMD</span><span class="cl-arr">↗ TradingView</span>
+        </a>
+        <a class="chart-link" href="https://www.tradingview.com/chart/?symbol=TVC:US10Y" target="_blank">
+          <span class="cl-icon">📊</span><span class="cl-name">美債10Y殖利率</span><span class="cl-sym">US10Y</span><span class="cl-arr">↗ TradingView</span>
+        </a>
+        <a class="chart-link" href="https://www.tradingview.com/chart/?symbol=NASDAQ:AMAT" target="_blank">
+          <span class="cl-icon">⚙️</span><span class="cl-name">應用材料</span><span class="cl-sym">AMAT</span><span class="cl-arr">↗ TradingView</span>
+        </a>
+        <a class="chart-link" href="https://www.tradingview.com/chart/?symbol=NASDAQ:QCOM" target="_blank">
+          <span class="cl-icon">📡</span><span class="cl-name">高通</span><span class="cl-sym">QCOM</span><span class="cl-arr">↗ TradingView</span>
+        </a>
+        <a class="chart-link" href="https://www.tradingview.com/chart/?symbol=NASDAQ:MU" target="_blank">
+          <span class="cl-icon">💾</span><span class="cl-name">美光</span><span class="cl-sym">MU</span><span class="cl-arr">↗ TradingView</span>
+        </a>
+      </div>
+      <div class="disclaimer" style="margin-top:16px">圖表由 TradingView 提供，點擊在新分頁開啟</div>
+    </div>
+
+    <!-- PAGE 1: 台股個股 -->
+    <div class="page" id="page1">
+      <div class="sec-title">🇹🇼 台股 AI 供應鏈</div>
+      <div class="grid-2">
+        <a class="chart-link" href="https://www.tradingview.com/chart/?symbol=TWSE:TAIEX" target="_blank">
+          <span class="cl-icon">🇹🇼</span><span class="cl-name">加權指數</span><span class="cl-sym">TAIEX</span><span class="cl-arr">↗ TradingView</span>
+        </a>
+        <a class="chart-link" href="https://www.tradingview.com/chart/?symbol=TWSE:2330" target="_blank">
+          <span class="cl-icon">🏭</span><span class="cl-name">台積電</span><span class="cl-sym">2330</span><span class="cl-arr">↗ TradingView</span>
+        </a>
+        <a class="chart-link" href="https://www.tradingview.com/chart/?symbol=TWSE:2454" target="_blank">
+          <span class="cl-icon">📱</span><span class="cl-name">聯發科</span><span class="cl-sym">2454</span><span class="cl-arr">↗ TradingView</span>
+        </a>
+        <a class="chart-link" href="https://www.tradingview.com/chart/?symbol=TWSE:2382" target="_blank">
+          <span class="cl-icon">🖥️</span><span class="cl-name">廣達</span><span class="cl-sym">2382</span><span class="cl-arr">↗ TradingView</span>
+        </a>
+        <a class="chart-link" href="https://www.tradingview.com/chart/?symbol=TWSE:2317" target="_blank">
+          <span class="cl-icon">🔧</span><span class="cl-name">鴻海</span><span class="cl-sym">2317</span><span class="cl-arr">↗ TradingView</span>
+        </a>
+        <a class="chart-link" href="https://www.tradingview.com/chart/?symbol=TWSE:3017" target="_blank">
+          <span class="cl-icon">❄️</span><span class="cl-name">奇鋐</span><span class="cl-sym">3017</span><span class="cl-arr">↗ TradingView</span>
+        </a>
+        <a class="chart-link" href="https://www.tradingview.com/chart/?symbol=TWSE:2308" target="_blank">
+          <span class="cl-icon">⚡</span><span class="cl-name">台達電</span><span class="cl-sym">2308</span><span class="cl-arr">↗ TradingView</span>
+        </a>
+        <a class="chart-link" href="https://www.tradingview.com/chart/?symbol=TWSE:3037" target="_blank">
+          <span class="cl-icon">🔲</span><span class="cl-name">欣興（ABF）</span><span class="cl-sym">3037</span><span class="cl-arr">↗ TradingView</span>
+        </a>
+      </div>
+      <div class="disclaimer" style="margin-top:16px">圖表由 TradingView 提供，點擊在新分頁開啟</div>
+    </div>
+
+    <!-- PAGE 2: ETF -->
+    <div class="page" id="page2">
+      <div class="sec-title">💼 我的 ETF 自選清單</div>
+      <div class="etf-grid" id="etfContainer"></div>
+      <div class="disclaimer" style="margin-top:8px">⚠️ 數據由 Claude AI 搜尋取得，僅供參考，不構成投資建議</div>
+    </div>
+
+    <!-- PAGE 3: CHECKLIST -->
+    <div class="page" id="page3">
+      <div class="prog-wrap">
+        <div class="prog-row"><span class="prog-label">今日完成度</span><span class="prog-num"><span id="doneN">0</span>/<span id="totalN">0</span></span></div>
+        <div class="prog-bg"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+      </div>
+      <div class="cl-two-col">
+        <div id="clLeft"></div>
+        <div id="clRight"></div>
+      </div>
+      <div class="card" style="margin-top:4px">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:10px">📋 今日市場判斷</div>
+        <div class="verdict-row">
+          <button class="v-btn bull" onclick="setVerdict('bull',this)">🟢 偏多</button>
+          <button class="v-btn neut" onclick="setVerdict('neut',this)">🟡 中性</button>
+          <button class="v-btn bear" onclick="setVerdict('bear',this)">🔴 偏空</button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px">📝 今日備忘</div>
+        <textarea id="notesArea" placeholder="記錄今日重要事件或個人觀察..."></textarea>
+      </div>
+      <button class="reset-btn" onclick="resetAll()">↺ 重置今日清單</button>
+      <div class="disclaimer">⚠️ 僅供個人參考，不構成投資建議</div>
+    </div>
+
+  </div><!-- end main -->
+</div><!-- end layout -->
+
+<!-- BOTTOM TABS (mobile) -->
+<div class="bottom-tabs">
+  <div class="btab active" onclick="switchPage(0)" data-page="0"><span class="btab-icon">🇺🇸</span>美股</div>
+  <div class="btab" onclick="switchPage(1)" data-page="1"><span class="btab-icon">🇹🇼</span>台股</div>
+  <div class="btab" onclick="switchPage(2)" data-page="2"><span class="btab-icon">💼</span>ETF</div>
+  <div class="btab" onclick="switchPage(3)" data-page="3"><span class="btab-icon">✅</span>清單</div>
+</div>
+
+<script>
+const ETFS=[
+  {code:"00403A",name:"主動統一升級50",icon:"🏆",cat:"主動型"},
+  {code:"0052",name:"富邦科技",icon:"💻",cat:"科技"},
+  {code:"006208",name:"富邦台50",icon:"🇹🇼",cat:"大盤"},
+  {code:"00646",name:"元大S&P500",icon:"🇺🇸",cat:"美股"},
+  {code:"0056",name:"元大高股息",icon:"💰",cat:"高息"},
+  {code:"0050",name:"元大台灣50",icon:"🇹🇼",cat:"大盤"},
+  {code:"00981A",name:"主動統一台股增長",icon:"📈",cat:"主動型"},
+  {code:"00878",name:"國泰永續高股息",icon:"🌱",cat:"高息"},
+  {code:"009816",name:"凱基台灣TOP50",icon:"🏅",cat:"大盤"},
+  {code:"00735",name:"國泰臺韓科技",icon:"🔬",cat:"科技"},
+  {code:"00913",name:"兆豐台灣晶圓製造",icon:"⚙️",cat:"半導體"},
+  {code:"00935",name:"野村臺灣新科技50",icon:"🚀",cat:"科技"},
+  {code:"00910",name:"第一金太空衛星",icon:"🛸",cat:"主題"},
+  {code:"00927",name:"群益半導體收益",icon:"🔲",cat:"半導體"},
+];
+
+const CL_DATA=[
+  {sec:"🌅 開盤前確認",badge:"08:30",col:"#fbbf24",items:[
+    {id:"p1",t:"費半 SOX 漲跌幅",h:"超過±5%為重大訊號",query:"費城半導體指數SOX今日最新收盤漲跌幅與點位"},
+    {id:"p2",t:"台積電 ADR 開盤參考價",h:"換算台幣，與前日收盤比較",query:"台積電ADR TSM美股今日最新收盤價與漲跌幅"},
+    {id:"p3",t:"輝達 NVDA 方向",h:"AI族群情緒核心指標",query:"輝達NVDA今日最新收盤價與漲跌幅"},
+    {id:"p4",t:"美債 10Y 殖利率",h:"高於4.5%對科技股形成壓力",query:"美國10年期公債殖利率今日最新數值"},
+    {id:"p5",t:"台指期夜盤收盤點位",h:"逆價差代表偏空",query:"台指期夜盤今日收盤點位與漲跌"},
+    {id:"p6",t:"CME FedWatch 升息機率",h:"機率攀升科技股估值受壓",query:"CME FedWatch今日聯準會升息機率最新數據"},
+  ]},
+  {sec:"📈 盤中觀察",badge:"09:00–13:30",col:"#38bdf8",items:[
+    {id:"m1",t:"台積電量價同步",h:"放量上漲最健康",query:"台積電2330今日盤中股價漲跌與成交量"},
+    {id:"m2",t:"外資台積電買賣超",h:"連續2日以上才有趨勢意義",query:"今日外資買賣台積電2330超金額"},
+    {id:"m3",t:"外資台指期淨部位",h:"轉淨多單是反彈確認信號",query:"今日外資台指期未平倉淨多空部位"},
+    {id:"m4",t:"族群輪動方向",h:"晶片→ODM→散熱→ABF",query:"今日台股AI相關族群漲跌排行"},
+    {id:"m5",t:"加權指數與5日線關係",h:"跌破5日線建議降低部位",query:"台股加權指數今日收盤點位與5日均線數值"},
+  ]},
+  {sec:"🌙 收盤後覆盤",badge:"14:00",col:"#34d399",items:[
+    {id:"q1",t:"三大法人合計買賣超",h:"外資、投信、自營方向是否一致",query:"今日台股三大法人外資投信自營商買賣超合計金額"},
+    {id:"q2",t:"成交量與前日比較",h:"放量收黑=賣壓沉重",query:"今日台股加權指數收盤漲跌與總成交量億元"},
+    {id:"q3",t:"台積電 ADR 收盤走勢",h:"為明日開盤方向提前準備",query:"台積電ADR TSM今晚美股最新收盤價與漲跌"},
+    {id:"q4",t:"費半 SOX 收盤確認",h:"確認今日費半終值",query:"費城半導體SOX今日最終收盤數值與漲跌幅"},
+  ]},
+  {sec:"⚠️ 風險警示",badge:"隨時",col:"#f87171",items:[
+    {id:"r1",t:"費半單日跌幅是否超 5%",h:"超過則台股電子族群可能跌3~8%",query:"費城半導體SOX今日跌幅是否超過5%"},
+    {id:"r2",t:"美債 10Y 是否突破 4.8%",h:"突破則高估值科技股估值壓縮",query:"美國10年期公債殖利率今日是否超過4.8%"},
+    {id:"r3",t:"外資是否連續 5 日賣超",h:"系統性資金外流",query:"近5日台股外資買賣超明細，是否連續賣超"},
+    {id:"r4",t:"ABF/PCB 族群是否噴出",h:"資金輪動末段警訊",query:"今日台股ABF載板PCB族群如欣興南電漲跌幅"},
+  ]}
+];
+
+let checked={};
+const DK=new Date().toISOString().slice(0,10);
+const now=new Date();
+const days=["日","一","二","三","四","五","六"];
+document.getElementById('dateStr').textContent=`${now.getMonth()+1}/${now.getDate()} 週${days[now.getDay()]}`;
+
+try{
+  const s=localStorage.getItem('cl_'+DK);if(s)checked=JSON.parse(s);
+  const v=localStorage.getItem('verdict_'+DK);
+  if(v){const b=document.querySelector('.v-btn.'+v);if(b)b.classList.add('on');}
+  const n=localStorage.getItem('notes_'+DK);
+  if(n)document.getElementById('notesArea').value=n;
+}catch(e){}
+
+function switchPage(i){
+  document.querySelectorAll('.page').forEach((p,j)=>p.classList.toggle('active',i===j));
+  document.querySelectorAll('.nav-item[data-page]').forEach(el=>el.classList.toggle('active',parseInt(el.dataset.page)===i));
+  document.querySelectorAll('.btab[data-page]').forEach(el=>el.classList.toggle('active',parseInt(el.dataset.page)===i));
+  document.getElementById('mainContent').scrollTop=0;
+}
+
+// ── ETF ──
+function buildETF(){
+  const cont=document.getElementById('etfContainer');
+  ETFS.forEach(etf=>{
+    const div=document.createElement('div');
+    div.className='etf-card';div.id='etf-'+etf.code;
+    div.innerHTML=`
+      <div class="etf-top">
+        <div class="etf-info">
+          <span class="etf-code">${etf.code}</span>
+          <div class="etf-name">${etf.icon} ${etf.name}</div>
+          <div class="etf-cat">${etf.cat}</div>
+        </div>
+        <div class="etf-price-wrap">
+          <div class="etf-price" id="ep-${etf.code}">--</div>
+          <div class="etf-chg" id="ec-${etf.code}">未查詢</div>
+        </div>
+      </div>
+      <div class="etf-btn-row">
+        <button class="etf-query-btn" id="ebtn-${etf.code}" onclick="queryETF('${etf.code}','${etf.name}')">🤖 查詢數據</button>
+        <a class="etf-tv-btn" href="https://www.tradingview.com/chart/?symbol=TWSE:${etf.code.replace(/A$/,'')}" target="_blank">📊 圖表 ↗</a>
+        <span class="etf-status" id="est-${etf.code}"></span>
+      </div>
+      <div class="etf-result" id="er-${etf.code}">
+        <div class="res-header">📡 AI 查詢結果</div>
+        <div id="erb-${etf.code}"></div>
+      </div>`;
+    cont.appendChild(div);
+  });
+}
+
+async function queryETF(code,name){
+  const btn=document.getElementById('ebtn-'+code);
+  const resultBox=document.getElementById('er-'+code);
+  const resBody=document.getElementById('erb-'+code);
+  const priceEl=document.getElementById('ep-'+code);
+  const chgEl=document.getElementById('ec-'+code);
+  const status=document.getElementById('est-'+code);
+  btn.disabled=true;btn.textContent='⏳ 查詢中...';
+  resultBox.classList.remove('show');
+  const today=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'});
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',max_tokens:700,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        system:`台股ETF分析師。今天${today}。只回傳JSON：{"price":"收盤價","change":"漲跌金額","change_pct":"漲跌幅%","direction":"up/down/neutral","nav":"淨值","volume":"成交量張","signal":"正常/注意/警示","summary":"繁體中文2句分析","action":"一句建議"}`,
+        messages:[{role:'user',content:`搜尋台股ETF ${code} ${name} 今天${today}收盤價、漲跌幅、成交量、淨值。`}]
+      })
+    });
+    const data=await res.json();
+    const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const match=text.match(/\{[\s\S]*?\}/);
+    if(!match)throw new Error();
+    const r=JSON.parse(match[0]);
+    const dc=r.direction==='up'?'up':'down';
+    const dcbg=r.direction==='up'?'up-bg':'down-bg';
+    if(r.price&&r.price!=='--'){priceEl.textContent=r.price;priceEl.className='etf-price '+dc;}
+    if(r.change_pct){chgEl.textContent=(r.change||'')+' '+(r.change_pct||'');chgEl.className='etf-chg '+dc;}
+    const sc=r.signal==='警示'||r.signal==='注意'?'res-warn':'res-ok';
+    const st=r.signal==='警示'?'⚠️ 警示':r.signal==='注意'?'⚠️ 注意':'✅ 正常';
+    resBody.innerHTML=`
+      <div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px;align-items:center">
+        <span class="res-signal ${dcbg}">${r.price||'--'}</span>
+        <span class="res-signal ${dcbg}">${r.change_pct||''}</span>
+        ${r.volume?`<span style="font-size:11px;color:var(--text2);font-family:monospace">成交 ${r.volume}張</span>`:''}
+        <span class="${sc}" style="font-size:12px">${st}</span>
+      </div>
+      ${r.nav?`<div style="font-size:11px;color:var(--text2);margin-bottom:6px;font-family:monospace">NAV淨值：${r.nav}</div>`:''}
+      <div class="res-body-text">${r.summary||''}</div>
+      <div class="res-action">💡 ${r.action||''}</div>`;
+    resultBox.classList.add('show');
+    const n=new Date();
+    status.textContent=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}更新`;
+  }catch(e){
+    resBody.innerHTML='<span style="color:var(--red)">❌ 查詢失敗，請稍後再試</span>';
+    resultBox.classList.add('show');
+  }
+  btn.disabled=false;btn.textContent='🔄 重新查詢';
+}
+
+// ── CHECKLIST ──
+function buildCL(){
+  const left=document.getElementById('clLeft');
+  const right=document.getElementById('clRight');
+  let total=0;
+  CL_DATA.forEach((sec,si)=>{
+    const target=si<2?left:right;
+    const div=document.createElement('div');
+    div.className='cl-section';
+    let html=`<div class="cl-head"><span class="cl-head-title">${sec.sec}</span><span class="cl-badge" style="color:${sec.col};border:1px solid ${sec.col}55;background:${sec.col}11">${sec.badge}</span></div><div class="cl-body">`;
+    sec.items.forEach(item=>{
+      total++;
+      html+=`<div class="cl-item${checked[item.id]?' done':''}" id="item-${item.id}">
+        <div class="cl-row" onclick="toggle('${item.id}')">
+          <div class="cl-box"><span class="cl-check">✓</span></div>
+          <div class="cl-text"><div class="cl-main">${item.t}</div><div class="cl-hint">${item.h}</div></div>
+        </div>
+        <div class="cl-query-row">
+          <button class="query-btn" id="btn-${item.id}" onclick="queryItem('${item.id}')">🤖 查詢數據</button>
+          <span id="status-${item.id}" style="font-size:10px;color:var(--green);font-family:monospace;margin-left:4px"></span>
+        </div>
+        <div class="cl-result" id="result-${item.id}">
+          <div class="res-header">📡 AI 查詢結果</div>
+          <div id="resbody-${item.id}"></div>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+    div.innerHTML=html;
+    target.appendChild(div);
+  });
+  document.getElementById('totalN').textContent=total;
+  updateProg();
+}
+
+function toggle(id){
+  const el=document.getElementById('item-'+id);
+  checked[id]=!checked[id];
+  el.classList.toggle('done',checked[id]);
+  try{localStorage.setItem('cl_'+DK,JSON.stringify(checked));}catch(e){}
+  updateProg();
+}
+
+function updateProg(){
+  const total=parseInt(document.getElementById('totalN').textContent);
+  const done=Object.values(checked).filter(Boolean).length;
+  document.getElementById('doneN').textContent=done;
+  document.getElementById('progFill').style.width=(total?done/total*100:0)+'%';
+}
+
+async function queryItem(id){
+  let item=null;
+  CL_DATA.forEach(sec=>sec.items.forEach(i=>{if(i.id===id)item=i;}));
+  if(!item)return;
+  const btn=document.getElementById('btn-'+id);
+  const status=document.getElementById('status-'+id);
+  const resultBox=document.getElementById('result-'+id);
+  const resBody=document.getElementById('resbody-'+id);
+  btn.disabled=true;btn.textContent='⏳ 查詢中...';
+  status.textContent='';resultBox.classList.remove('show');
+  const today=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'});
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',max_tokens:600,
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        system:`台股AI分析師。今天${today}。只回傳JSON：{"value":"主要數值含單位","change":"漲跌幅","direction":"up/down/neutral","signal":"正常/注意/警示","summary":"繁體中文1~2句分析","action":"一句建議"}`,
+        messages:[{role:'user',content:`搜尋今天${today}：${item.query}`}]
+      })
+    });
+    const data=await res.json();
+    const text=data.content.filter(b=>b.type==='text').map(b=>b.text).join('');
+    const match=text.match(/\{[\s\S]*?\}/);
+    if(!match)throw new Error();
+    const r=JSON.parse(match[0]);
+    const dc=r.direction==='up'?'up-bg':r.direction==='down'?'down-bg':'neutral-bg';
+    const sc=r.signal==='警示'||r.signal==='注意'?'res-warn':'res-ok';
+    const st=r.signal==='警示'?'⚠️ 警示':r.signal==='注意'?'⚠️ 注意':'✅ 正常';
+    resBody.innerHTML=`
+      <div style="margin-bottom:8px">
+        <span class="res-signal ${dc}">${r.value||'--'}</span>
+        <span class="res-signal ${dc}">${r.change||''}</span>
+        <span class="${sc}" style="font-size:12px;margin-left:4px">${st}</span>
+      </div>
+      <div class="res-body-text">${r.summary||''}</div>
+      <div class="res-action">💡 ${r.action||''}</div>`;
+    resultBox.classList.add('show');
+    const n=new Date();
+    status.textContent=`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+    if(!checked[id])toggle(id);
+  }catch(e){
+    resBody.innerHTML='<span style="color:var(--red)">❌ 查詢失敗，請稍後再試</span>';
+    resultBox.classList.add('show');
+  }
+  btn.disabled=false;btn.textContent='🔄 重新查詢';
+}
+
+function setVerdict(v,btn){
+  document.querySelectorAll('.v-btn').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  try{localStorage.setItem('verdict_'+DK,v);}catch(e){}
+}
+
+document.getElementById('notesArea').addEventListener('input',function(){
+  try{localStorage.setItem('notes_'+DK,this.value);}catch(e){}
+});
+
+function resetAll(){
+  if(!confirm('確定重置今日清單？'))return;
+  checked={};
+  try{localStorage.removeItem('cl_'+DK);localStorage.removeItem('verdict_'+DK);}catch(e){}
+  document.querySelectorAll('.cl-item').forEach(el=>el.classList.remove('done'));
+  document.querySelectorAll('.v-btn').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.cl-result,.etf-result').forEach(el=>el.classList.remove('show'));
+  document.querySelectorAll('.query-btn').forEach(b=>{b.textContent='🤖 查詢數據';b.disabled=false;});
+  document.querySelectorAll('.etf-query-btn').forEach(b=>{b.textContent='🤖 查詢數據';b.disabled=false;});
+  document.querySelectorAll('[id^="status-"],[id^="est-"]').forEach(el=>el.textContent='');
+  document.getElementById('notesArea').value='';
+  updateProg();
+}
+
+buildETF();
+buildCL();
+</script>
+</body>
+</html>
