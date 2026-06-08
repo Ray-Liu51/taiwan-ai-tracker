@@ -144,6 +144,27 @@ textarea{width:100%;min-height:80px;background:transparent;border:none;color:var
 textarea::placeholder{color:var(--text3)}
 .reset-btn{width:100%;padding:12px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--text3);font-size:13px;cursor:pointer;font-family:inherit;margin-bottom:10px;transition:all .15s}
 .reset-btn:hover{border-color:var(--border2);color:var(--text2)}
+/* Settings */
+.settings-wrap{max-width:500px;margin:0 auto}
+.settings-card{background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.settings-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px}
+.settings-desc{font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:14px}
+.api-input-wrap{position:relative;margin-bottom:12px}
+.api-input{width:100%;padding:11px 44px 11px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:monospace;outline:none;transition:border-color .2s}
+.api-input:focus{border-color:var(--accent)}
+.api-input::placeholder{color:var(--text3);font-family:system-ui}
+.api-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text2);cursor:pointer;font-size:16px;padding:2px}
+.api-save-btn{width:100%;padding:12px;background:linear-gradient(135deg,rgba(56,189,248,.2),rgba(56,189,248,.1));border:1px solid rgba(56,189,248,.4);border-radius:9px;color:var(--accent);font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+.api-save-btn:hover{background:linear-gradient(135deg,rgba(56,189,248,.3),rgba(56,189,248,.15))}
+.api-status{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:14px}
+.api-status.ok{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:var(--green)}
+.api-status.none{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.25);color:var(--warn)}
+.api-clear-btn{width:100%;padding:10px;background:transparent;border:1px solid var(--border);border-radius:9px;color:var(--text3);font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s}
+.api-clear-btn:hover{border-color:var(--red);color:var(--red)}
+.howto-step{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start}
+.howto-num{width:22px;height:22px;border-radius:50%;background:rgba(56,189,248,.15);color:var(--accent);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.howto-text{font-size:12px;color:var(--text2);line-height:1.6}
+.howto-text a{color:var(--accent);text-decoration:none}
 .disclaimer{font-size:10px;color:var(--text3);text-align:center;line-height:1.8;padding-bottom:24px}
 
 /* ── DESKTOP RESPONSIVE ── */
@@ -191,6 +212,10 @@ textarea::placeholder{color:var(--text3)}
     <div class="nav-divider"></div>
     <div class="nav-item" onclick="switchPage(3)" data-page="3">
       <span class="nav-icon">✅</span>追蹤清單
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-item" onclick="switchPage(4)" data-page="4">
+      <span class="nav-icon">⚙️</span>API 設定
     </div>
   </div>
 
@@ -294,6 +319,38 @@ textarea::placeholder{color:var(--text3)}
       <div class="disclaimer">⚠️ 僅供個人參考，不構成投資建議</div>
     </div>
 
+    <!-- PAGE 4: SETTINGS -->
+    <div class="page" id="page4">
+      <div class="settings-wrap">
+        <div class="sec-title" style="margin-top:0">⚙️ API 金鑰設定</div>
+        <div class="settings-card">
+          <div id="apiStatusBox" class="api-status none">⚠️ 尚未設定 API Key，查詢功能無法使用</div>
+          <div class="settings-title">輸入 Anthropic API Key</div>
+          <div class="settings-desc">API Key 僅儲存在你的瀏覽器本機，不會傳送到任何地方。每次查詢會消耗少量費用（約每次 0.001~0.003 美元）。</div>
+          <div class="api-input-wrap">
+            <input type="password" class="api-input" id="apiKeyInput" placeholder="貼上你的 API Key（sk-ant-...）">
+            <button class="api-eye" onclick="toggleEye()" id="eyeBtn">👁️</button>
+          </div>
+          <button class="api-save-btn" onclick="saveApiKey()">💾 儲存 API Key</button>
+        </div>
+        <div class="settings-card">
+          <div class="settings-title">🔑 如何取得 API Key</div>
+          <div style="margin-top:10px">
+            <div class="howto-step"><div class="howto-num">1</div><div class="howto-text">前往 <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> 登入</div></div>
+            <div class="howto-step"><div class="howto-num">2</div><div class="howto-text">點左側「API Keys」→「Create Key」</div></div>
+            <div class="howto-step"><div class="howto-num">3</div><div class="howto-text">複製產生的 Key（格式：sk-ant-...）</div></div>
+            <div class="howto-step"><div class="howto-num">4</div><div class="howto-text">貼到上方輸入框 → 點「儲存」</div></div>
+            <div class="howto-step"><div class="howto-num">5</div><div class="howto-text">USD 5 可使用數千次查詢，約台幣160元</div></div>
+          </div>
+        </div>
+        <div class="settings-card">
+          <div class="settings-title" style="color:var(--red)">🗑️ 清除 API Key</div>
+          <div class="settings-desc">如果要更換 Key 或清除設定，點下方按鈕。</div>
+          <button class="api-clear-btn" onclick="clearApiKey()">清除已儲存的 API Key</button>
+        </div>
+      </div>
+    </div>
+
   </div><!-- end main -->
 </div><!-- end layout -->
 
@@ -303,6 +360,7 @@ textarea::placeholder{color:var(--text3)}
   <div class="btab" onclick="switchPage(1)" data-page="1"><span class="btab-icon">🇹🇼</span>台股</div>
   <div class="btab" onclick="switchPage(2)" data-page="2"><span class="btab-icon">💼</span>ETF</div>
   <div class="btab" onclick="switchPage(3)" data-page="3"><span class="btab-icon">✅</span>清單</div>
+  <div class="btab" onclick="switchPage(4)" data-page="4"><span class="btab-icon">⚙️</span>設定</div>
 </div>
 
 <script>
@@ -412,12 +470,13 @@ async function queryETF(code,name){
   const priceEl=document.getElementById('ep-'+code);
   const chgEl=document.getElementById('ec-'+code);
   const status=document.getElementById('est-'+code);
+  if(!getApiKey()){ alert('請先到「⚙️ 設定」頁面輸入 API Key'); return; }
   btn.disabled=true;btn.textContent='⏳ 查詢中...';
   resultBox.classList.remove('show');
   const today=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'});
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json'},
+      method:'POST',headers:{'Content-Type':'application/json','x-api-key':getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',max_tokens:700,
         tools:[{type:'web_search_20250305',name:'web_search'}],
@@ -514,12 +573,13 @@ async function queryItem(id){
   const status=document.getElementById('status-'+id);
   const resultBox=document.getElementById('result-'+id);
   const resBody=document.getElementById('resbody-'+id);
+  if(!getApiKey()){ alert('請先到「⚙️ 設定」頁面輸入 API Key'); return; }
   btn.disabled=true;btn.textContent='⏳ 查詢中...';
   status.textContent='';resultBox.classList.remove('show');
   const today=new Date().toLocaleDateString('zh-TW',{year:'numeric',month:'long',day:'numeric'});
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',headers:{'Content-Type':'application/json'},
+      method:'POST',headers:{'Content-Type':'application/json','x-api-key':getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',max_tokens:600,
         tools:[{type:'web_search_20250305',name:'web_search'}],
@@ -578,6 +638,48 @@ function resetAll(){
   updateProg();
 }
 
+
+// ── API KEY ──
+function getApiKey(){ return localStorage.getItem('anthropic_api_key')||''; }
+
+function saveApiKey(){
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if(!val){ alert('請輸入 API Key'); return; }
+  if(!val.startsWith('sk-ant-')){ alert('格式不正確，API Key 應以 sk-ant- 開頭'); return; }
+  localStorage.setItem('anthropic_api_key', val);
+  updateApiStatus();
+  alert('✅ API Key 已儲存！現在可以使用查詢功能了。');
+}
+
+function clearApiKey(){
+  if(!confirm('確定要清除 API Key？')) return;
+  localStorage.removeItem('anthropic_api_key');
+  document.getElementById('apiKeyInput').value='';
+  updateApiStatus();
+}
+
+function toggleEye(){
+  const input = document.getElementById('apiKeyInput');
+  const btn = document.getElementById('eyeBtn');
+  if(input.type==='password'){ input.type='text'; btn.textContent='🙈'; }
+  else { input.type='password'; btn.textContent='👁️'; }
+}
+
+function updateApiStatus(){
+  const key = getApiKey();
+  const box = document.getElementById('apiStatusBox');
+  if(!box) return;
+  if(key){
+    box.className='api-status ok';
+    box.textContent='✅ API Key 已設定，查詢功能已啟用';
+    document.getElementById('apiKeyInput').value=key;
+  } else {
+    box.className='api-status none';
+    box.textContent='⚠️ 尚未設定 API Key，查詢功能無法使用';
+  }
+}
+
+updateApiStatus();
 buildETF();
 buildCL();
 </script>
