@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>房屋抵押貸款 × 台積電槓桿試算</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: #10131A;
+    color: #EDEAE3;
+    font-family: 'Noto Sans TC', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  .serif { font-family: 'Noto Serif TC', serif; }
+
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 28px 16px 60px;
+  }
+  .eyebrow {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: #8B93A1;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .title {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 28px;
+  }
+  .panel {
+    background: #1A1F29;
+    border: 1px solid #2A313D;
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin-bottom: 20px;
+  }
+  .row { margin-bottom: 16px; }
+  .row:last-child { margin-bottom: 0; }
+  .row-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .row-label { font-size: 13px; color: #8B93A1; }
+  .row-value { font-size: 14px; font-weight: 700; color: #EDEAE3; }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: #2A313D;
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #C9A227;
+    cursor: pointer;
+    border: 2px solid #10131A;
+    box-shadow: 0 0 0 1px #C9A227;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #C9A227;
+    cursor: pointer;
+    border: 2px solid #10131A;
+    box-shadow: 0 0 0 1px #C9A227;
+  }
+
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat-label { font-size: 12px; color: #8B93A1; margin-bottom: 4px; }
+  .stat-value { font-size: 19px; font-weight: 700; }
+  .stat-sub { font-size: 11px; color: #5C6470; margin-top: 2px; }
+
+  .be-price { font-size: 34px; font-weight: 700; color: #C9A227; margin-bottom: 2px; }
+  .be-sub { font-size: 13px; color: #8B93A1; margin-bottom: 18px; }
+
+  .gauge-track {
+    position: relative;
+    height: 10px;
+    border-radius: 5px;
+    margin-top: 8px;
+  }
+  .gauge-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #5C6470;
+    margin-top: 34px;
+  }
+  .gauge-note { font-size: 11px; color: #5C6470; margin-top: 6px; }
+
+  .marker {
+    position: absolute;
+    top: -3px;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+  .marker-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #10131A;
+    margin: 0 auto;
+  }
+  .marker-label {
+    font-size: 10px;
+    white-space: nowrap;
+    margin-top: 4px;
+  }
+
+  .result-row { display: flex; gap: 24px; margin-top: 14px; flex-wrap: wrap; }
+  .result-label { font-size: 12px; color: #8B93A1; }
+  .result-value { font-size: 24px; font-weight: 700; }
+
+  .chart-title { font-size: 13px; color: #8B93A1; padding: 0 10px 12px; }
+
+  .scenario-heading { font-size: 13px; color: #8B93A1; margin-bottom: 10px; }
+  .scenario-card {
+    background: #1A1F29;
+    border: 1px solid #2A313D;
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .scenario-name { font-size: 14px; font-weight: 700; }
+  .scenario-sub { font-size: 12px; color: #8B93A1; }
+  .scenario-pl { text-align: right; font-weight: 700; font-size: 17px; }
+  .scenario-pct { font-size: 11px; font-weight: 400; }
+
+  .footnote {
+    font-size: 11px;
+    color: #5C6470;
+    margin-top: 22px;
+    line-height: 1.7;
+    border-top: 1px solid #2A313D;
+    padding-top: 16px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">房屋抵押貸款 × 台積電槓桿試算</div>
+  <div class="title serif">借錢買股，什麼價位才真的划算？</div>
+
+  <div class="panel">
+    <div class="row">
+      <div class="row-head"><span class="row-label">貸款金額</span><span class="row-value" id="loanAmountDisplay"></span></div>
+      <input type="range" id="loanAmount" min="1000000" max="50000000" step="100000" />
+    </div>
+    <div class="row">
+      <div class="row-head"><span class="row-label">年利率（以日計息）</span><span class="row-value" id="annualRateDisplay"></span></div>
+      <input type="range" id="annualRate" min="0.5" max="6" step="0.01" />
+    </div>
+    <div class="row">
+      <div class="row-head"><span class="row-label">持有期間</span><span class="row-value" id="monthsDisplay"></span></div>
+      <input type="range" id="months" min="6" max="60" step="1" />
+    </div>
+    <div class="row">
+      <div class="row-head"><span class="row-label">進場價位</span><span class="row-value" id="entryPriceDisplay"></span></div>
+      <input type="range" id="entryPrice" min="500" max="5000" step="5" />
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel" style="margin-bottom:0;">
+      <div class="stat-label">可買進股數</div>
+      <div class="stat-value serif" id="lotsValue"></div>
+      <div class="stat-sub" id="lotsSub"></div>
+    </div>
+    <div class="panel" style="margin-bottom:0;">
+      <div class="stat-label" id="interestLabel"></div>
+      <div class="stat-value serif" id="interestValue"></div>
+      <div class="stat-sub" id="interestSub"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="stat-label">損益兩平股價</div>
+    <div class="be-price serif" id="breakEvenPrice"></div>
+    <div class="be-sub" id="breakEvenSub"></div>
+    <div class="gauge-track" id="gaugeTrack">
+      <div class="marker" id="markerEntry"><div class="marker-dot"></div><div class="marker-label">進場</div></div>
+      <div class="marker" id="markerBE"><div class="marker-dot"></div><div class="marker-label">兩平</div></div>
+      <div class="marker" id="markerExplore"><div class="marker-dot"></div><div class="marker-label">情境</div></div>
+    </div>
+    <div class="gauge-labels"><span id="gaugeMinLabel"></span><span id="gaugeMaxLabel"></span></div>
+    <div class="gauge-note">台股慣例：紅＝漲／獲利，綠＝跌／虧損</div>
+  </div>
+
+  <div class="panel">
+    <div class="row">
+      <div class="row-head"><span class="row-label">情境股價（拖動查看損益）</span><span class="row-value" id="explorePriceDisplay"></span></div>
+      <input type="range" id="explorePrice" min="500" max="5000" step="5" />
+    </div>
+    <div class="result-row">
+      <div>
+        <div class="result-label">淨損益（已扣利息）</div>
+        <div class="result-value serif" id="netPLValue"></div>
+      </div>
+      <div>
+        <div class="result-label">本金報酬率</div>
+        <div class="result-value serif" id="netReturnValue"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel" style="padding: 20px 12px 8px;">
+    <div class="chart-title">股價 vs 淨損益（單位：萬元）</div>
+    <svg id="chart" width="100%" height="220" viewBox="0 0 680 220" style="overflow:visible;"></svg>
+  </div>
+
+  <div class="scenario-heading">參考情境（可在上方調整情境股價自行測試更多可能）</div>
+  <div id="scenarios"></div>
+
+  <div class="footnote">
+    純數學試算，不構成投資或貸款建議。利息以單利、全額動用估算；隨借隨還型貸款若中途還款，實際利息會更低。未計入證交稅、手續費、股利與可能的稅務影響。房屋抵押的下檔風險（斷頭、續貸條件變動）無法用單一數字呈現，請自行評估承受能力。
+  </div>
+</div>
+
+<script>
+const fmt = (n, digits = 0) => Number(n).toLocaleString('zh-Hant-TW', { maximumFractionDigits: digits, minimumFractionDigits: digits });
+
+const state = {
+  loanAmount: 18000000,
+  annualRate: 2.65,
+  months: 36,
+  entryPrice: 2450,
+  explorePrice: 3500,
+};
+
+const els = {
+  loanAmount: document.getElementById('loanAmount'),
+  annualRate: document.getElementById('annualRate'),
+  months: document.getElementById('months'),
+  entryPrice: document.getElementById('entryPrice'),
+  explorePrice: document.getElementById('explorePrice'),
+};
+
+function shares() {
+  const raw = state.loanAmount / state.entryPrice;
+  return Math.floor(raw / 1000) * 1000;
+}
+
+function totalInterest() {
+  return state.loanAmount * (state.annualRate / 100) * (state.months / 12);
+}
+
+function breakEvenPrice() {
+  const s = shares();
+  return s > 0 ? (state.loanAmount + totalInterest()) / s : 0;
+}
+
+function calcNet(price) {
+  const s = shares();
+  const grossValue = s * price;
+  const grossPL = grossValue - state.loanAmount;
+  const netPL = grossPL - totalInterest();
+  const netReturnPct = state.loanAmount > 0 ? (netPL / state.loanAmount) * 100 : 0;
+  return { grossPL, netPL, netReturnPct };
+}
+
+function chartBounds() {
+  const min = Math.max(200, Math.round((state.entryPrice * 0.5) / 50) * 50);
+  const max = Math.round(Math.max(state.explorePrice * 1.15, state.entryPrice * 1.5) / 50) * 50;
+  return { min, max };
+}
+
+function pct(v, min, max) {
+  return Math.min(100, Math.max(0, ((v - min) / (max - min)) * 100));
+}
+
+function render() {
+  els.loanAmount.value = state.loanAmount;
+  els.annualRate.value = state.annualRate;
+  els.months.value = state.months;
+  els.entryPrice.value = state.entryPrice;
+
+  const { min: gMin, max: gMax } = chartBounds();
+  els.explorePrice.min = gMin;
+  els.explorePrice.max = gMax;
+  els.explorePrice.value = state.explorePrice;
+
+  document.getElementById('loanAmountDisplay').textContent = `${fmt(state.loanAmount / 10000)} 萬元`;
+  document.getElementById('annualRateDisplay').textContent = `${state.annualRate.toFixed(2)} %`;
+  document.getElementById('monthsDisplay').textContent = `${state.months} 個月`;
+  document.getElementById('entryPriceDisplay').textContent = `${fmt(state.entryPrice)} 元`;
+  document.getElementById('explorePriceDisplay').textContent = `${fmt(state.explorePrice)} 元`;
+
+  const s = shares();
+  const lots = s / 1000;
+  const unusedCash = state.loanAmount - s * state.entryPrice;
+  document.getElementById('lotsValue').textContent = `${fmt(lots, 1)} 張`;
+  document.getElementById('lotsSub').textContent = `${fmt(s)} 股，剩餘現金 ${fmt(unusedCash)} 元`;
+
+  const ti = totalInterest();
+  document.getElementById('interestLabel').textContent = `${state.months} 個月總利息成本`;
+  document.getElementById('interestValue').textContent = `${fmt(ti / 10000)} 萬元`;
+  document.getElementById('interestSub').textContent = `約為本金的 ${((ti / state.loanAmount) * 100).toFixed(1)}%`;
+
+  const be = breakEvenPrice();
+  const beDelta = ((be - state.entryPrice) / state.entryPrice) * 100;
+  document.getElementById('breakEvenPrice').textContent = `${fmt(be)} 元`;
+  document.getElementById('breakEvenSub').textContent = `較進場價需再漲 ${beDelta.toFixed(1)}% 才打平利息成本`;
+
+  const track = document.getElementById('gaugeTrack');
+  const beP = pct(be, gMin, gMax);
+  track.style.background = `linear-gradient(90deg, #2E8B57 0%, #2E8B57 ${beP}%, #D8453C ${beP}%, #D8453C 100%)`;
+
+  const exploreCalc = calcNet(state.explorePrice);
+  const isGain = exploreCalc.netPL >= 0;
+
+  positionMarker('markerEntry', pct(state.entryPrice, gMin, gMax), '#EDEAE3');
+  positionMarker('markerBE', beP, '#C9A227');
+  positionMarker('markerExplore', pct(state.explorePrice, gMin, gMax), isGain ? '#D8453C' : '#2E8B57');
+
+  document.getElementById('gaugeMinLabel').textContent = `${fmt(gMin)} 元`;
+  document.getElementById('gaugeMaxLabel').textContent = `${fmt(gMax)} 元`;
+
+  const netPLEl = document.getElementById('netPLValue');
+  const netReturnEl = document.getElementById('netReturnValue');
+  const color = isGain ? '#D8453C' : '#2E8B57';
+  netPLEl.style.color = color;
+  netReturnEl.style.color = color;
+  netPLEl.textContent = `${isGain ? '+' : ''}${fmt(exploreCalc.netPL / 10000)} 萬元`;
+  netReturnEl.textContent = `${isGain ? '+' : ''}${exploreCalc.netReturnPct.toFixed(1)}%`;
+
+  renderChart(gMin, gMax, be);
+  renderScenarios();
+}
+
+function positionMarker(id, leftPct, color) {
+  const el = document.getElementById(id);
+  el.style.left = `${leftPct}%`;
+  el.querySelector('.marker-dot').style.background = color;
+  el.querySelector('.marker-label').style.color = color;
+}
+
+function renderChart(gMin, gMax, be) {
+  const svg = document.getElementById('chart');
+  svg.innerHTML = '';
+  const W = 680, H = 220, padL = 46, padR = 10, padT = 10, padB = 26;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+
+  const steps = 40;
+  const pts = [];
+  for (let i = 0; i <= steps; i++) {
+    const price = gMin + ((gMax - gMin) * i) / steps;
+    pts.push({ price, net: calcNet(price).netPL / 10000 });
+  }
+  const netMin = Math.min(...pts.map(p => p.net), 0);
+  const netMax = Math.max(...pts.map(p => p.net), 0);
+  const yRange = netMax - netMin || 1;
+
+  const xFor = (price) => padL + ((price - gMin) / (gMax - gMin)) * plotW;
+  const yFor = (net) => padT + plotH - ((net - netMin) / yRange) * plotH;
+
+  const ns = 'http://www.w3.org/2000/svg';
+
+  // grid lines
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (plotH * i) / 4;
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', padL); line.setAttribute('x2', W - padR);
+    line.setAttribute('y1', y); line.setAttribute('y2', y);
+    line.setAttribute('stroke', '#2A313D'); line.setAttribute('stroke-dasharray', '3,3');
+    svg.appendChild(line);
+  }
+
+  // zero line
+  const zeroY = yFor(0);
+  const zeroLine = document.createElementNS(ns, 'line');
+  zeroLine.setAttribute('x1', padL); zeroLine.setAttribute('x2', W - padR);
+  zeroLine.setAttribute('y1', zeroY); zeroLine.setAttribute('y2', zeroY);
+  zeroLine.setAttribute('stroke', '#8B93A1'); zeroLine.setAttribute('stroke-dasharray', '4,4');
+  svg.appendChild(zeroLine);
+
+  // breakeven vertical line
+  const beX = xFor(be);
+  const beLine = document.createElementNS(ns, 'line');
+  beLine.setAttribute('x1', beX); beLine.setAttribute('x2', beX);
+  beLine.setAttribute('y1', padT); beLine.setAttribute('y2', H - padB);
+  beLine.setAttribute('stroke', '#C9A227'); beLine.setAttribute('stroke-dasharray', '4,4');
+  svg.appendChild(beLine);
+
+  // entry vertical line
+  const enX = xFor(state.entryPrice);
+  const enLine = document.createElementNS(ns, 'line');
+  enLine.setAttribute('x1', enX); enLine.setAttribute('x2', enX);
+  enLine.setAttribute('y1', padT); enLine.setAttribute('y2', H - padB);
+  enLine.setAttribute('stroke', '#5C6470'); enLine.setAttribute('stroke-dasharray', '2,2');
+  svg.appendChild(enLine);
+
+  // line path
+  const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xFor(p.price)} ${yFor(p.net)}`).join(' ');
+  const path = document.createElementNS(ns, 'path');
+  path.setAttribute('d', d);
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', '#C9A227');
+  path.setAttribute('stroke-width', '2.5');
+  svg.appendChild(path);
+
+  // x axis labels
+  [gMin, (gMin+gMax)/2, gMax].forEach((v) => {
+    const t = document.createElementNS(ns, 'text');
+    t.setAttribute('x', xFor(v));
+    t.setAttribute('y', H - 6);
+    t.setAttribute('fill', '#8B93A1');
+    t.setAttribute('font-size', '11');
+    t.setAttribute('text-anchor', 'middle');
+    t.textContent = fmt(v);
+    svg.appendChild(t);
+  });
+
+  // y axis labels
+  [netMin, 0, netMax].forEach((v) => {
+    const t = document.createElementNS(ns, 'text');
+    t.setAttribute('x', 4);
+    t.setAttribute('y', yFor(v) + 4);
+    t.setAttribute('fill', '#8B93A1');
+    t.setAttribute('font-size', '11');
+    t.textContent = fmt(v);
+    svg.appendChild(t);
+  });
+}
+
+function renderScenarios() {
+  const container = document.getElementById('scenarios');
+  const be = breakEvenPrice();
+  const scenarios = [
+    { label: '悲觀', sub: '回檔至前波修正區間', price: Math.round(state.entryPrice * 0.75) },
+    { label: '持平', sub: '小幅上漲、僅打平', price: Math.round(be) },
+    { label: '分析師樂觀', sub: '3 年內達成目標價', price: 3500 },
+  ];
+  container.innerHTML = '';
+  scenarios.forEach((s) => {
+    const c = calcNet(s.price);
+    const gain = c.netPL >= 0;
+    const color = gain ? '#D8453C' : '#2E8B57';
+    const card = document.createElement('div');
+    card.className = 'scenario-card';
+    card.innerHTML = `
+      <div>
+        <div class="scenario-name">${s.label}</div>
+        <div class="scenario-sub">${s.sub} · ${fmt(s.price)} 元</div>
+      </div>
+      <div class="scenario-pl serif" style="color:${color};">
+        ${gain ? '+' : ''}${fmt(c.netPL / 10000)} 萬
+        <div class="scenario-pct">${gain ? '+' : ''}${c.netReturnPct.toFixed(1)}%</div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+Object.keys(els).forEach((key) => {
+  els[key].addEventListener('input', (e) => {
+    state[key] = parseFloat(e.target.value);
+    render();
+  });
+});
+
+render();
+</script>
+</body>
+</html>
