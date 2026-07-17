@@ -10,7 +10,7 @@
 </head>
 <body>
 <div id="root"></div>
-<script type="text/babel" data-presets="react">
+<script type="text/plain" id="app-source">
 const { useState, useEffect, useCallback, useRef } = React;
 
 /* ─── DATA ─── */
@@ -698,8 +698,16 @@ function App() {
     </>
   );
 }
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+<script>
+(function () {
+  var src = document.getElementById('app-source').textContent;
+  var output = Babel.transform(src, {
+    plugins: [["transform-react-jsx", { runtime: "classic" }]]
+  }).code;
+  var runApp = new Function('React', 'ReactDOM', output + '\nReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));');
+  runApp(React, ReactDOM);
+})();
 </script>
 </body>
 </html>
